@@ -111,6 +111,13 @@ def plt_distr(df, title=True, discrete_cols=[], interval=False, zones=False):
     ''' Декларируем функцию которая принимает на входе дата фрейм любого размера 
     и выводит графики отражающие распределение значений в столбцах с количественным 
     и качественным типом данных в данном датафрейме ''' 
+    # Create col_names dictionary if it doesn't exist
+    global col_names
+    try:
+        col_names
+    except NameError:
+        col_names = {col: col for col in df.columns}
+    
     # Разделяем данные на количественны и качественные
     df_num = df.select_dtypes(include=['int64', 'float64'])
     
