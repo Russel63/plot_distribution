@@ -1,3 +1,9 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import math
+
+
 def is_discrete(series, ratio_threshold=0.05):
     # вычисляем отношение числа уникальных значений к количеству значений 
     unique_ratio = series.nunique() / len(series)
