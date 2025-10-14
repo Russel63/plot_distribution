@@ -2,13 +2,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import math
-
+import numpy as np
 
 def is_discrete(series, ratio_threshold=0.05):
     # вычисляем отношение числа уникальных значений к количеству значений 
     unique_ratio = series.nunique() / len(series)
-    # Проверяем, являются ли все числа целыми в массиве
-    is_whole_numbers = series.dropna().apply(lambda x: float(x).is_integer()).all()
+    # Проверяем, являются ли все числа целыми в массиве (векторизованно)
+    clean_series = series.dropna()
+    is_whole_numbers = (clean_series == clean_series.astype(int)).all()
     # возвращаем истина если все числа целые и отношение уникальных знач. к n знач. ниже порога 
     return is_whole_numbers and unique_ratio < ratio_threshold
 
@@ -35,21 +36,39 @@ def get_position(value, unique_vals):
     return len(unique_vals) - 1
 
 
+def get_position_fast(value, unique_vals):
+    unique_array = np.array(unique_vals)
+    idx = np.searchsorted(unique_array, value)
+    if idx < len(unique_array) and unique_array[idx] == value:
+        return idx
+    # Linear interpolation for non-exact matches
+    if idx == 0:
+        return 0
+    if idx >= len(unique_array):
+        return len(unique_array) - 1
+    
+    prev_val = unique_array[idx-1]
+    next_val = unique_array[idx]
+    ratio = (value - prev_val) / (next_val - prev_val)
+    return (idx-1) + ratio
+
+
 def plt_num(df, ax, col_name, num_cols_sep):
+    # Кэшируем вычисления
+    series = df[col_name]
+    mean_val = series.mean()
+    median_val = series.median()
+    
     if col_name in num_cols_sep['discrete_cols']:
         # задаем сам график 
         sns.countplot(data=df, x=col_name, ax=ax, palette='viridis', edgecolor='black', linewidth=0.5)
         ax.set_ylabel('Количество')
         
         # работаем с уникальными значениями 
-        unique_vals = sorted(df[col_name].dropna().unique())
+        unique_vals = sorted(series.dropna().unique())
         
-        # Соотносм положение линий среднего и медианы с корректным положением столбцов 
-        mean_val = df[col_name].mean()
-        median_val = df[col_name].median()
-        
-        mean_pos = get_position(mean_val, unique_vals)
-        median_pos = get_position(median_val, unique_vals)
+        mean_pos = get_position_fast(mean_val, unique_vals)
+        median_pos = get_position_fast(median_val, unique_vals)
         
         # задаем линии среднего и медианы на графике 
         ax.axvline(mean_pos, color='red', linestyle='--', 
@@ -64,10 +83,10 @@ def plt_num(df, ax, col_name, num_cols_sep):
         sns.kdeplot(data=df, x=col_name, ax=ax, color='blue', linewidth=2)
         ax.set_ylabel('Частота')
 
-        ax.axvline(df[col_name].mean(), color='red', linestyle='--', 
-                      linewidth=2, label=f'Среднее: {df[col_name].mean():.2f}')
-        ax.axvline(df[col_name].median(), color='orange', linestyle='--', 
-                      linewidth=2, label=f'Медиана: {df[col_name].median():.2f}')
+        ax.axvline(mean_val, color='red', linestyle='--', 
+                      linewidth=2, label=f'Среднее: {mean_val:.2f}')
+        ax.axvline(median_val, color='orange', linestyle='--', 
+                      linewidth=2, label=f'Медиана: {median_val:.2f}')
 
     ax.legend()
     ax.set_title(f'Распределение "{col_names[col_name]}"') 
@@ -111,6 +130,7 @@ def plt_distr(df, title=True, discrete_cols=[], interval=False, zones=False):
     ''' Декларируем функцию которая принимает на входе дата фрейм любого размера 
     и выводит графики отражающие распределение значений в столбцах с количественным 
     и качественным типом данных в данном датафрейме ''' 
+    
     # Create col_names dictionary if it doesn't exist
     global col_names
     try:
