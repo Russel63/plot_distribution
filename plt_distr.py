@@ -13,7 +13,7 @@ def is_discrete(series, ratio_threshold=0.05):
     clean_series = series.dropna()
     is_whole_numbers = (clean_series == clean_series.astype(int)).all()
     # возвращаем истина если все числа целые и отношение уникальных знач. к n знач. ниже порога 
-    return is_whole_numbers and unique_ratio < ratio_threshold
+    return is_whole_numbers and unique_ratio > ratio_threshold
 
 
 def sep_num_col(df):
