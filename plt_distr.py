@@ -4,6 +4,8 @@ import seaborn as sns
 import math
 import numpy as np
 
+RANDOM_STATE = 42
+
 def is_discrete(series, ratio_threshold=0.05):
     # вычисляем отношение числа уникальных значений к количеству значений 
     unique_ratio = series.nunique() / len(series)
@@ -16,8 +18,10 @@ def is_discrete(series, ratio_threshold=0.05):
 
 def sep_num_col(df):
     # делим колонки на дискретные и непрерывные по условию функции is_discrete()
-    discrete_cols = [col for col in df.columns if is_discrete(df[col])]
-    continuous_cols = [col for col in df.columns if col not in discrete_cols]
+    df_sample = df.dropna()
+    df_sample = df.sample(n=1000, random_state=RANDOM_STATE)
+    discrete_cols = [col for col in df_sample.columns if is_discrete(df_sample[col])]
+    continuous_cols = [col for col in df_sample.columns if col not in discrete_cols]
     return {'discrete_cols': discrete_cols, 'continuous_cols': continuous_cols}
 
 
