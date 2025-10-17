@@ -130,7 +130,7 @@ def mark_zone(zones, df, ax, col_name):
         plt.fill_between([low, up], 0, (ax.get_ylim()[1])*0.5, alpha=0.5, color='black', label='Убытки')
 
         
-def plt_distr(df, title=True, discrete_cols=[], interval=False, zones=False):
+def plt_distr(df, title=True, discrete_cols=[], all_discrete_cols=[], interval=False, zones=False):
     ''' Декларируем функцию которая принимает на входе дата фрейм любого размера 
     и выводит графики отражающие распределение значений в столбцах с количественным 
     и качественным типом данных в данном датафрейме ''' 
@@ -148,8 +148,16 @@ def plt_distr(df, title=True, discrete_cols=[], interval=False, zones=False):
     df_cat = df.select_dtypes(include=['object'])
     
     all_cols = list(df_num.columns) + list(df_cat.columns)
-    num_cols_sep = sep_num_col(df_num) 
-    num_cols_sep['discrete_cols'] += discrete_cols
+
+    # отделяем дискретные признаки от непрерывных 
+    if len(all_discrete_cols) == 0:
+        num_cols_sep = sep_num_col(df_num) 
+        num_cols_sep['discrete_cols'] += discrete_cols
+    else:
+        discrete_cols = all_discrete_cols
+        continuous_cols = [col for col in list(df_num.columns) if col not in discrete_cols]
+        num_cols_sep = {'discrete_cols': discrete_cols, 'continuous_cols': continuous_cols}
+
     n_cols = len(all_cols)
     
     if n_cols == 0:
