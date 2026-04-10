@@ -1,2 +1,15 @@
-# plot_distribution
-The plt_dist function prints a graph showing the distribution of values ​​in a data frame. 
+Plot Distribution Tool
+plot_distribution — это легкая обертка над Matplotlib и Seaborn для быстрого визуального анализа распределения данных в Pandas DataFrame.
+Основные возможности
+📊 Автоматическое построение гистограмм и графиков плотности (KDE).
+🧹 Очистка графиков от лишнего "шума".
+🚀 Минимум кода для получения информативного результата.
+Установка
+bash
+pip install -r requirements.txt
+Используйте код с осторожностью.
+
+(Убедитесь, что у вас установлены pandas, matplotlib и seaborn)
+Использование
+Функция plt_dist принимает DataFrame и название колонки, возвращая визуализацию распределения значений. 
+
