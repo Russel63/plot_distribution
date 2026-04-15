@@ -31,7 +31,7 @@ def sep_num_col(df):
 
 
 def get_position_fast(value, unique_vals):
-    unique_array = np.array(unique_vals)
+    unique_array = np.array(unique_vals, dtype=float)
     idx = np.searchsorted(unique_array, value)
     if idx < len(unique_array) and unique_array[idx] == value:
         return idx
@@ -61,7 +61,29 @@ def _style_discrete_axis(ax, unique_vals, max_ticks=15):
 
 
 def plt_num(df, ax, col_name, num_cols_sep, col_names, interval=False, zones=False):
-    series = df[col_name].dropna()
+    series = df[col_name].replace([np.inf, -np.inf], np.nan)
+    n_inf = df[col_name].isin([np.inf, -np.inf]).sum()
+    if n_inf > 0:
+        print(f"[WARNING] Column '{col_name}': {n_inf} inf values removed before plotting.")
+    series = series.dropna()
+    if len(series) > 500_000:
+        print(f"[WARNING] Column '{col_name}' has {len(series):,} rows — plotting may be slow.")
+    if len(series) == 0:
+        print(f"[INFO] Column '{col_name}': no data after dropping NaN/Inf, skipping.")
+        ax.text(0.5, 0.5, 'Нет данных', ha='center', va='center', transform=ax.transAxes, fontsize=12)
+        ax.set_title(f'Распределение "{col_names[col_name]}"')
+        return
+    if series.nunique() == 1 or series.std() == 0 or (series.mean() != 0 and series.std() / abs(series.mean()) < 1e-10):
+        print(f"[INFO] Column '{col_name}': near-constant values (std ≈ 0), showing single bar.")
+        val = series.iloc[0]
+        ax.bar([0], [len(series)], width=0.4, color='skyblue', edgecolor='black', linewidth=0.5)
+        ax.set_xlim(-1, 1)
+        ax.set_xticks([0])
+        ax.set_xticklabels([str(val)])
+        ax.set_ylabel('Количество')
+        ax.set_title(f'Распределение "{col_names[col_name]}"')
+        ax.set_xlabel(f'{col_names[col_name]}')
+        return
     mean_val = series.mean()
     median_val = series.median()
 
@@ -84,7 +106,7 @@ def plt_num(df, ax, col_name, num_cols_sep, col_names, interval=False, zones=Fal
     else:
         sns.histplot(data=df, x=col_name, bins=30, ax=ax, alpha=0.7, fill=True,
                      color='skyblue', edgecolor='black', linewidth=0.5, kde=False, stat='density')
-        sns.kdeplot(data=df, x=col_name, ax=ax, color='blue', linewidth=2)
+        sns.kdeplot(data=df, x=col_name, ax=ax, color='blue', linewidth=2, warn_singular=False)
         ax.set_ylabel('Частота')
         ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=8))
         ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())
@@ -105,7 +127,7 @@ def plt_num(df, ax, col_name, num_cols_sep, col_names, interval=False, zones=Fal
             for i, zone in enumerate(zones):
                 low = ax.get_xlim()[0] if i == 0 else zone[0]
                 ax.fill_between([low, zone[1]], 0, ax.get_ylim()[1] * 0.5,
-                                alpha=0.4, color='red', label='Зона убытков' if i == 0 else '_')
+                                alpha=0.4, color='red', label='Зона рисков' if i == 0 else '_')
 
     ax.legend(fontsize=9)
     ax.set_title(f'Распределение "{col_names[col_name]}"')
@@ -115,6 +137,18 @@ def plt_num(df, ax, col_name, num_cols_sep, col_names, interval=False, zones=Fal
 
 def plt_cat(df, ax, col_name, col_names, max_cat_values=20):
     series = df[col_name].dropna()
+    if len(series) == 0:
+        print(f"[INFO] Column '{col_name}': no data after dropping NaN, skipping.")
+        ax.text(0.5, 0.5, 'Нет данных', ha='center', va='center', transform=ax.transAxes, fontsize=12)
+        ax.set_title(f'Распределение "{col_names[col_name]}"')
+        return
+    n_unique = series.nunique()
+    if n_unique > 100_000:
+        print(f"[WARNING] Column '{col_name}' has {n_unique:,} unique values — skipping plot to save RAM.")
+        ax.text(0.5, 0.5, f'Слишком много уникальных значений\n({n_unique:,})', ha='center', va='center',
+                transform=ax.transAxes, fontsize=11)
+        ax.set_title(f'Распределение "{col_names[col_name]}"')
+        return
     counts = series.value_counts()
 
     truncated = len(counts) > max_cat_values
@@ -134,6 +168,34 @@ def plt_cat(df, ax, col_name, col_names, max_cat_values=20):
 
 def plt_distr(df, title=True, col_names=None, discrete_cols=None, all_discrete_cols=None,
               interval=False, zones=False, ncols=1, max_cat_values=20):
+    # Валидация входных данных
+    if not isinstance(df, pd.DataFrame):
+        print(f"❌ Ожидается pandas DataFrame, получено: {type(df).__name__}\n"
+              "   Пример: plt_distr(df)")
+        return
+    if df.empty:
+        print("❌ DataFrame пустой — нечего отображать.")
+        return
+    if len(df.columns) != len(set(df.columns)):
+        print("⚠️  DataFrame содержит дублирующиеся имена колонок — это может вызвать ошибки.")
+    if interval is not False and not (0 < interval < 1):
+        print(f"❌ interval должен быть числом от 0 до 1, например 0.95. Получено: {interval}")
+        return
+    if zones is not False:
+        if not isinstance(zones, list) or not all(isinstance(z, tuple) and len(z) == 2 for z in zones):
+            print(f"❌ zones должен быть списком кортежей: [(low, high), ...]. Получено: {zones}")
+            return
+    if not isinstance(ncols, int) or ncols < 1:
+        print(f"❌ ncols должен быть целым числом >= 1. Получено: {ncols}")
+        return
+    # фильтруем колонки с нехэшируемыми значениями (списки, словари и т.д.)
+    unhashable = [col for col in df.columns if df[col].apply(lambda x: isinstance(x, (list, dict, set))).any()]
+    if unhashable:
+        print(f"⚠️  Колонки {unhashable} содержат нехэшируемые значения (списки, словари) — они будут пропущены.")
+        df = df.drop(columns=unhashable)
+    if not df.index.is_unique:
+        print("[WARNING] DataFrame has duplicate index — resetting index to avoid errors.")
+        df = df.reset_index(drop=True)
     if col_names is None:
         col_names = {col: col for col in df.columns}
     else:
@@ -144,7 +206,8 @@ def plt_distr(df, title=True, col_names=None, discrete_cols=None, all_discrete_c
     if all_discrete_cols is None:
         all_discrete_cols = []
 
-    df_num = df.select_dtypes(include=[np.number])
+    df_num = df.select_dtypes(include=[np.number, bool])
+    df_num = df_num.apply(lambda col: col.astype(int) if col.dtype == bool else col)
     df_cat = df.select_dtypes(include=['object', 'category'])
     all_cols = list(df_num.columns) + list(df_cat.columns)
 
