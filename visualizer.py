@@ -167,7 +167,7 @@ def plt_cat(df, ax, col_name, col_names, max_cat_values=20):
 
 
 def plt_distr(df, title=True, col_names=None, discrete_cols=None, all_discrete_cols=None,
-              interval=False, zones=False, ncols=1, max_cat_values=20):
+              interval=False, zones=False, zones_cols=None, ncols=1, max_cat_values=20):
     # Валидация входных данных
     if not isinstance(df, pd.DataFrame):
         print(f"❌ Ожидается pandas DataFrame, получено: {type(df).__name__}\n"
@@ -241,7 +241,8 @@ def plt_distr(df, title=True, col_names=None, discrete_cols=None, all_discrete_c
 
     for i, col_name in enumerate(all_cols):
         if col_name in df_num.columns:
-            plt_num(df, axes[i], col_name, num_cols_sep, col_names, interval, zones)
+            col_zones = zones if (zones and (zones_cols is None or col_name in zones_cols)) else False
+            plt_num(df, axes[i], col_name, num_cols_sep, col_names, interval, col_zones)
         else:
             plt_cat(df, axes[i], col_name, col_names, max_cat_values)
 
