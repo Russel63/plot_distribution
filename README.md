@@ -2,6 +2,8 @@
 
 [![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Russel63/Distribution-Visualizer)
+[![Kaggle](https://img.shields.io/badge/Kaggle-Distribution%20Visualizer-20BEFF?logo=kaggle&logoColor=white)](https://www.kaggle.com/code/osvaldspengler/distribution-visualizer-tutorial)
 
 Библиотека для автоматической визуализации распределений признаков в pandas DataFrame.  
 Просто передай датафрейм — она сама разберётся какие графики построить.
@@ -173,6 +175,12 @@ plt_distr(
 
 Интерактивный самоучитель со всеми примерами доступен на Kaggle:  
 👉 [Distribution Visualizer — Самоучитель](https://www.kaggle.com/code/osvaldspengler/distribution-visualizer-tutorial)
+
+## Веб-приложение
+
+Интерактивное приложение HF на базе библиотеки:
+
+👉 [Distribution Visualizer - Hugging Face Spaces](https://huggingface.co/spaces/Russel63/Distribution-Visualizer)
 
 ---
 
